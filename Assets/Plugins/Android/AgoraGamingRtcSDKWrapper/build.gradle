@@ -1,0 +1,107 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.2.3'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+apply plugin: 'com.android.library'
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile fileTree(includes: ['agora-rtc-sdk.jar'], dir: '../Agora/libs')
+}
+
+android {
+    compileSdkVersion 17
+    buildToolsVersion '22.0.1'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    android.libraryVariants.all { variant ->
+        String taskName = String.format("remove%sBuildConfig", variant.name.capitalize())
+        task "${taskName}" << {
+            file("${buildDir}/intermediates/classes/${variant.name}/io/agora/gaming/unity3d/wrapper/BuildConfig.class").delete()
+        }
+        variant.processJavaResources.dependsOn(taskName)
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDir '../libs'
+        }
+
+        // Move the build types to build-types/<type>
+        // For instance, build-types/debug/java, build-types/debug/AndroidManifest.xml, ...
+        // This moves them out of them default location under src/<type>/... which would
+        // conflict with src/ being used by the main source set.
+        // Adding new build types or product flavors should be accompanied
+        // by a similar customization.
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+}
+
+// This is the actual solution, as in http://stackoverflow.com/a/19037807/1002054
+task clearSDK(type: Delete) {
+    delete '../Agora/libs/libagora-unity3d-wrapper.jar'
+    delete '../Agora/AndroidManifest.xml'
+}
+
+task copyJar(type: Copy) {
+    from('build/intermediates/bundles/release')
+    into('../Agora/libs')
+    include('classes.jar')
+    rename ('classes.jar', 'libagora-unity3d-wrapper.jar')
+}
+
+task copyXML(type: Copy) {
+    from('.')
+    into('../Agora')
+    include('AndroidManifest.xml')
+}
+
+task makeAndCopySDKWrapper() {}
+
+makeAndCopySDKWrapper.dependsOn(clearSDK, copyJar, copyXML, build)

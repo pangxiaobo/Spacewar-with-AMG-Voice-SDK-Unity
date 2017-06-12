@@ -39,7 +39,7 @@ public class GameController : MonoBehaviour {
 	}
 
 	void Awake() {
-		Application.targetFrameRate = 60;
+		Application.targetFrameRate = 30;
 	}
 
 	void OnApplicationPause(bool pauseStatus) {
